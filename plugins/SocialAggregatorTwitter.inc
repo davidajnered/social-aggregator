@@ -13,10 +13,6 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
           'required' => TRUE,
           'type' => 'text',
         ),
-        'password' => array(
-          'required' => TRUE,
-          'type' => 'password',
-        ),
       )
     );
     $this->savePluginConfig($config);
@@ -29,5 +25,6 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
   public function data() {
     $params = func_get_args();
     error_log(var_export($params, TRUE));
+    // http://api.twitter.com/version/statuses/home_timeline.json
   }
 }

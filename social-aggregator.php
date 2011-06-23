@@ -49,18 +49,21 @@ function social_aggregator_settings_page() {
   // Store array with settings for the network
 
   $plugins = get_option($option);
-  error_log(var_export('options', TRUE));
-  error_log(var_export($plugins, TRUE));
   // Is form submitted?
   if( isset($_POST[ $hidden_submit_field ]) && $_POST[ $hidden_submit_field ] == 'Y' ) {
-    //$o = $_POST[ $data_field_name ];
-    //$network_array = array();
-    //update_option( $opt_name, $opt_val ); ?>
+    $ignore = array('sa_submit_hidden', 'Submit');
+    foreach($_POST as $name => $value) {
+      if(!in_array($name, $ignore)) {
+        $stored_values[$name] = $value;
+      }
+    }
+    update_option('social_aggregator_stored_values', $stored_values); ?>
     <div class="updated"><p><strong><?php _e('settings saved.', 'menu-test' ); ?></strong></p></div>
     <?php
   }
 ?>
 
+<?php $stored_values = get_option('social_aggregator_stored_values'); ?>
 <div class="wrap">
   <h2>Social Aggregator Settings</h2>
   <form name="networks" method="post" action="">
@@ -70,11 +73,15 @@ function social_aggregator_settings_page() {
       <fieldset>
         <legend><?php print $plugin['plugin name']; ?></legend>
         <?php foreach($plugin['user config'] as $name => $field) : ?>
+          <?php $field_name = strtolower(str_replace(' ', '_', $plugin['plugin name']. '_' . $name)); ?>
           <!-- Move this to a separate function -->
           <p>
-            <label for="<?php print $name; ?>"><?php print $name; ?></label>
-            <input type="<?php print $field['type']; ?>" name="<?php print $name; ?>">
+            <label for="<?php print $field_name; ?>"><?php print $name; ?></label>
+            <input type="<?php print $field['type']; ?>"
+                   name="<?php print $field_name; ?>"
+                   value="<?php print isset($stored_values[$field_name]) ? $stored_values[$field_name] : ''; ?>">
           </p>
+          <!-- end -->
         <?php endforeach; ?>
       </fieldset>
     <?php endforeach; ?>
