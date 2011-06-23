@@ -21,11 +21,13 @@
   Cachning!
 */
 
+$social_aggregator;
+
 add_action('init', 'social_aggregator_init');
 function social_aggregator_init() {
   require_once('SocialAggregator.inc');
-  $collector = new SocialAggregator();
-  //$collector->setupPlugins();
+  global $social_aggregator;
+  $social_aggregator = new SocialAggregator();
 }
 
 add_action('admin_menu', 'social_aggregator_settings_menu');
@@ -54,7 +56,9 @@ function social_aggregator_settings_page() {
     $ignore = array('sa_submit_hidden', 'Submit');
     foreach($_POST as $name => $value) {
       if(!in_array($name, $ignore)) {
-        $stored_values[$name] = $value;
+        // Explode name to get [0] = plugin machine name, [1] = field name
+        $names = explode(':', $name);
+        $stored_values[$names[0]][$names[1]] = $value;
       }
     }
     update_option('social_aggregator_stored_values', $stored_values); ?>
@@ -63,7 +67,6 @@ function social_aggregator_settings_page() {
   }
 ?>
 
-<?php $stored_values = get_option('social_aggregator_stored_values'); ?>
 <div class="wrap">
   <h2>Social Aggregator Settings</h2>
   <form name="networks" method="post" action="">
@@ -72,17 +75,9 @@ function social_aggregator_settings_page() {
     <?php foreach($plugins as $plugin) : ?>
       <fieldset>
         <legend><?php print $plugin['plugin name']; ?></legend>
-        <?php foreach($plugin['user config'] as $name => $field) : ?>
-          <?php $field_name = strtolower(str_replace(' ', '_', $plugin['plugin name']. '_' . $name)); ?>
-          <!-- Move this to a separate function -->
-          <p>
-            <label for="<?php print $field_name; ?>"><?php print $name; ?></label>
-            <input type="<?php print $field['type']; ?>"
-                   name="<?php print $field_name; ?>"
-                   value="<?php print isset($stored_values[$field_name]) ? $stored_values[$field_name] : ''; ?>">
-          </p>
-          <!-- end -->
-        <?php endforeach; ?>
+        <?php foreach($plugin['user config'] as $name => $field) {
+          social_aggregator_get_formated_field($plugin, $name, $field);
+        } ?>
       </fieldset>
     <?php endforeach; ?>
 
@@ -95,10 +90,32 @@ function social_aggregator_settings_page() {
 <?php
 }
 
-function social_aggregator_get_formated_field($data) {
-  return $field;
+function social_aggregator_get_formated_field($plugin, $name, $field) {
+  $stored_values = get_option('social_aggregator_stored_values');
+  $field_name = $plugin['machine name'] . ':' . $field['machine name'];
+  $field_stored_value = $stored_values[$plugin['machine name']][$field['machine name']]; ?>
+  <p>
+    <label for="<?php print $field_name; ?>"><?php print $name; ?></label>
+    <input type="<?php print $field['type']; ?>" name="<?php print $field_name; ?>" value="<?php print isset($field_stored_value) ? $field_stored_value : ''; ?>" />
+  </p>
+<?php
 }
 
-function the_social_feed() {
-  return $return;
+function the_aggregated_feed() {
+  global $social_aggregator;
+  $posts = $social_aggregator->getPluginData(); ?>
+
+  <ul class="social-aggregator-feed">
+  <?php foreach($posts as $post) : ?>
+    <li>
+      <ul>
+        <li><?php print $post['user']; ?></li>
+        <li><?php print $post['content']; ?></li>
+        <li><?php print $post['date']; ?></li>
+      </ul>
+    </li>
+  <?php endforeach; ?>
+  </ul>
+
+<?php
 }

@@ -3,6 +3,8 @@ class SocialAggregator {
 
   // Variables
   private static $instance;
+  private $plugins;
+  private $plugin_objects;
 
   /**
    * Singleton construct method
@@ -17,19 +19,25 @@ class SocialAggregator {
    * This is stored in an the option array so we can display the correct fields on the settings page
    */
   public function setupPluginOptions() {
-    // ladda options som vi ska skicka till data-methoden
-    $plugins = $this->getPlugins();
-    foreach($plugins as $plugin) {
-      $object = new $plugin;
-      $config = $object->config();
+    $this->getPlugins();
+    foreach($this->plugins as $plugin) {
+      $plugin_object = new $plugin;
+      $this->plugin_objects[] = &$plugin_object;
+      $plugin_object->config();
     }
   }
   
   /**
-   * Get the data from the plugin api implementation
+   * Get the data from plugins api implementation
    */
   public function getPluginData() {
-    
+    $stored_values = get_option('social_aggregator_stored_values', $stored_values);
+    foreach($this->plugin_objects as $plugin_object) {
+      // Get all the stored values related to this plugin
+      $plugin_values = $stored_values[$plugin_object->getMachineName()];
+      $data = $plugin_object->data($plugin_values);
+    }
+    return $data;
   }
 
   /**
@@ -46,7 +54,7 @@ class SocialAggregator {
       }
       closedir($handle);
     }
-    return $plugins;  
+    $this->plugins = $plugins;  
   }
 } // End of class
 
