@@ -13,8 +13,8 @@ abstract class SocialAggregatorPlugin {
    * Add the plugin class name to the options array
    */
   public function savePluginConfig($config) {
-    $stored_config_array = get_option('SocialAggregatorPlugins');
-    if($stored_config_array == NULL) {
+    $stored_config_array = get_option('social_aggregator_plugins');
+    if(!$stored_config_array) {
       $stored_config_array = array();
     }
 
@@ -29,6 +29,25 @@ abstract class SocialAggregatorPlugin {
 
     $stored_config_array[$config['plugin name']] = $config;
     update_option('social_aggregator_plugins', $stored_config_array);
+  }
+  
+  /**
+   * Execute cURL.
+   * Can be overridden in child class is this method is insufficient
+   */
+  public function doCurl($url) {
+    // Request
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 0);
+    $result = curl_exec($ch);
+
+    // Log errors
+    error_log(var_export(curl_getinfo($ch), TRUE));
+    error_log(var_export(curl_error($ch), TRUE));
+
+    curl_close($ch);
+    return $result;
   }
   
   public function getName() {

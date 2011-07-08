@@ -1,18 +1,19 @@
 <?php
-class SocialAggregatorTwitter extends SocialAggregatorPlugin {
+class SocialAggregatorYoutube extends SocialAggregatorPlugin {
 
   /**
    * User details
    */
   public function config() {
     $config = array(
-      'plugin name' => 'Twitter For SA',
+      'plugin name' => 'Youtube',
       'user config' => array(
-        'screen name' => array(
+        'username' => array(
           'required' => TRUE,
           'type' => 'text',
         ),
-      )
+      ),
+      'api return' => 'json',
     );
     $this->savePluginConfig($config);
   }
@@ -24,16 +25,10 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
    * most be returns in an structured array
    */
   public function data() {
-    $base_url = 'http://api.twitter.com/1/statuses/user_timeline.json';
-    $params = func_get_args();
-    $url_params = $this->buildURL($params[0]);
-    $url = $base_url . '?' . $url_params;
-    //     $ch = curl_init($url);
-    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    //     $data = curl_exec($ch); 
-    //     curl_close($ch);
+    $url = 'https://gdata.youtube.com/feeds/api/users/davidajnered/uploads';
     $result = $this->doCurl($url);
-    $result = json_decode($result);
+    $result = unserialize($result);
+    error_log(var_export($result, TRUE));
     return $this->sanitizeData($result);
   }
 
@@ -58,7 +53,6 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
   private function sanitizeData($data) {
     $posts = array();
     foreach($data as $raw) {
-      $post = NULL;
       $post['user']    = $raw->user->screen_name;
       $post['content'] = $raw->text;
       $post['date']    = strtotime($raw->created_at);

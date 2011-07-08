@@ -26,6 +26,7 @@ $social_aggregator;
 add_action('init', 'social_aggregator_init');
 function social_aggregator_init() {
   require_once('SocialAggregator.inc');
+  require_once('SocialAggregatorPlugin.inc');
   global $social_aggregator;
   $social_aggregator = new SocialAggregator();
 }
@@ -42,15 +43,13 @@ function social_aggregator_settings_page() {
   }
 
   // variables for the field and option names 
-  $option = 'social_aggregator_plugins';
   $hidden_submit_field = 'sa_submit_hidden';
-  //$data_field_name = 'mt_favorite_color';
 
   // Show availabe networks. Store an array with networks in options.
   // Network is available if there is a plugin for it
   // Store array with settings for the network
 
-  $plugins = get_option($option);
+  $plugins = get_option('social_aggregator_plugins');
   // Is form submitted?
   if( isset($_POST[ $hidden_submit_field ]) && $_POST[ $hidden_submit_field ] == 'Y' ) {
     $ignore = array('sa_submit_hidden', 'Submit');
@@ -109,9 +108,9 @@ function the_aggregated_feed() {
   <?php foreach($posts as $post) : ?>
     <li>
       <ul>
-        <li><?php print $post['user']; ?></li>
-        <li><?php print $post['content']; ?></li>
-        <li><?php print $post['date']; ?></li>
+        <li><?php print $post['user_name']; ?></li>
+        <li><?php print $post['post_content']; ?></li>
+        <li><?php print $post['post_date']; ?></li>
       </ul>
     </li>
   <?php endforeach; ?>

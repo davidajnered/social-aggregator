@@ -1,18 +1,19 @@
 <?php
-class SocialAggregatorTwitter extends SocialAggregatorPlugin {
+class SocialAggregatorVimeo extends SocialAggregatorPlugin {
 
   /**
    * User details
    */
   public function config() {
     $config = array(
-      'plugin name' => 'Twitter For SA',
+      'plugin name' => 'Vimeo',
       'user config' => array(
-        'screen name' => array(
+        'username' => array(
           'required' => TRUE,
           'type' => 'text',
         ),
-      )
+      ),
+      'api return' => 'json',
     );
     $this->savePluginConfig($config);
   }
@@ -24,16 +25,9 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
    * most be returns in an structured array
    */
   public function data() {
-    $base_url = 'http://api.twitter.com/1/statuses/user_timeline.json';
-    $params = func_get_args();
-    $url_params = $this->buildURL($params[0]);
-    $url = $base_url . '?' . $url_params;
-    //     $ch = curl_init($url);
-    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    //     $data = curl_exec($ch); 
-    //     curl_close($ch);
+    $url = 'http://vimeo.com/api/v2/davidajnered/likes.php';
     $result = $this->doCurl($url);
-    $result = json_decode($result);
+    $result = unserialize($result);
     return $this->sanitizeData($result);
   }
 
@@ -57,13 +51,27 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
    */
   private function sanitizeData($data) {
     $posts = array();
-    foreach($data as $raw) {
-      $post = NULL;
-      $post['user']    = $raw->user->screen_name;
-      $post['content'] = $raw->text;
-      $post['date']    = strtotime($raw->created_at);
+    foreach($data as $key => $value) {
+      $post['user_name'] = $value['user_name'];
+      $post['user_url'] = $value['user_url'];
+      $post['post_title'] = $value['title'];
+      $post['post_url'] = $value['url'];
+      $post['post_content'] = self::getImage($value['thumbnail_large'], $value['url'], $key);
+      $post['post_date'] = strtotime($value['upload_date']);
       $posts[] = $post;
     }
     return $posts;
+  }
+  
+  private function getImage($url, $link = FALSE, $id = '') {
+    $output = '';
+    if($link) {
+      $output .= '<a href="' . $link . '">';
+    }
+    $output .= '<img class="vimeo-image" id="vimeo-image-' . $id . '" src="' . $url . '">';
+    if($link) {
+      $output .= '</a>';
+    }
+    return $output;
   }
 }

@@ -5,11 +5,13 @@ class SocialAggregator {
   private static $instance;
   private $plugins;
   private $plugin_objects;
+  private $subdir = FALSE;
 
   /**
    * Singleton construct method
    */
   public function SocialAggregator() {
+    $this->getPlugins();
     $this->setupPluginOptions();
   }
 
@@ -19,11 +21,10 @@ class SocialAggregator {
    * This is stored in an the option array so we can display the correct fields on the settings page
    */
   public function setupPluginOptions() {
-    $this->getPlugins();
     foreach($this->plugins as $plugin) {
-      $plugin_object = new $plugin;
-      $this->plugin_objects[] = &$plugin_object;
-      $plugin_object->config();
+      $plugin_instance = new $plugin;
+      $this->plugin_instances[] = $plugin_instance;
+      $plugin_instance->config();
     }
   }
   
@@ -32,29 +33,58 @@ class SocialAggregator {
    */
   public function getPluginData() {
     $stored_values = get_option('social_aggregator_stored_values', $stored_values);
-    foreach($this->plugin_objects as $plugin_object) {
+    $aggregated_data = array();
+    foreach($this->plugin_instances as $plugin_instance) {
       // Get all the stored values related to this plugin
-      $plugin_values = $stored_values[$plugin_object->getMachineName()];
-      $data = $plugin_object->data($plugin_values);
+      $plugin_values = $stored_values[$plugin_instance->getMachineName()];
+      $aggregated_data = $plugin_instance->data($plugin_values);
     }
-    return $data;
+    return $aggregated_data;
   }
 
   /**
    * Scan through the plugin folder for available plugins
    */
   private function getPlugins() {
-    $plugins = array();
-    if ($handle = opendir(dirname(__FILE__) . '/plugins')) {
-      $ignore = array('.', '..', 'SocialAggregatorPlugin.inc');
-      while (false !== ($file = readdir($handle))) {
-        if(!in_array($file, $ignore)) {
-          $plugins[] = str_replace('.inc', '', $file);
+    $dir = dirname(__FILE__) . '/plugins';
+    $this->checkDir($dir);
+  }
+  
+  /**
+   * Recursive function searching for plugins
+   */
+  private function checkDir($dir) {
+    $ignore = array('.', '..', 'SocialAggregatorPlugin.inc');
+    if(is_dir($dir)) {
+      if ($handle = opendir($dir)) {
+        while (false !== ($file = readdir($handle))) {
+          if(!in_array($file, $ignore)) {
+            $file_path = $dir . '/' . $file;
+            if(is_dir($file_path) && !$this->subdir) {
+              $this->subdir = TRUE;
+              $this->checkDir($file_path);
+              break;
+            } else {
+              $result = $this->checkFile($file, $file_path);
+              if($result && $this->subdir) {
+                break;
+              }
+            }
+          }
         }
       }
-      closedir($handle);
     }
-    $this->plugins = $plugins;  
+  }
+
+ /**
+  * Validate file
+  */
+  private function checkFile($file, $file_path) {
+    if(strpos($file, 'SocialAggregator') === 0) {
+      require_once($file_path);
+      $this->plugins[] = str_replace('.inc', '', $file);
+      return TRUE;
+    }
   }
 } // End of class
 
