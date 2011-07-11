@@ -31,6 +31,23 @@ function social_aggregator_init() {
   $social_aggregator = new SocialAggregator();
 }
 
+register_activation_hook(__FILE__,'social_aggregator_install');
+function social_aggregator_install() {
+  global $wpdb;
+  $table_name = $wpdb->prefix . "social_aggregator";
+
+  $sql = "CREATE TABLE " . $table_name . " (
+    id varchar(64) NOT NULL,
+    service text NOT NULL,
+    date timestamp NOT NULL,
+    content longtext NOT NULL,
+    PRIMARY KEY (id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=latin1";
+
+  require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+  dbDelta($sql);
+}
+
 add_action('wp_head', 'social_aggregator_head');
 function social_aggregator_head() {
   $path = get_bloginfo('wpurl') . '/wp-content/plugins/social-aggregator/social-aggregator.css';
