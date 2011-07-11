@@ -41,15 +41,14 @@ abstract class SocialAggregatorPlugin {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POST, 0);
     $result = curl_exec($ch);
-
-    // Log errors
-    error_log(var_export(curl_getinfo($ch), TRUE));
-    error_log(var_export(curl_error($ch), TRUE));
-
     curl_close($ch);
     return $result;
   }
   
+  public function writeToDatabase() {
+
+  }
+
   public function getName() {
     return $this->plugin_name;
   }
