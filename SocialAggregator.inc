@@ -34,38 +34,48 @@ class SocialAggregator {
   public function getData() {
     $stored_values = get_option('social_aggregator_stored_values', $stored_values);
     $aggregated_data = array();
+
     // add var that decide how often we collect new data. We don't need to do it on every request
     foreach($this->plugin_instances as $plugin_instance) {
       // Get all the stored values (username, password and stuff like that) related to this plugin
       $plugin_values = $stored_values[$plugin_instance->getMachineName()];
       // Call plugin with values
-      $aggregated_data = $plugin_instance->data($plugin_values);
+      $plugin_data = $plugin_instance->data($plugin_values);
+      if(!is_array($plugin_data)) {
+        error_log(var_export('fel', TRUE));
+        // Set error!
+        return;
+      }
       // Write data to database
-      foreach($aggregated_data as $data) {
-        self::writeToDatabase($plugin_instance->getMachineName(), $data);
+      foreach($plugin_data as $data) {
+        self::writeToDatabase($plugin_instance->getMachineName(), $plugin_instance->timestamp($data), $data);
       }
     }
+
     return $aggregated_data;
   }
 
   /**
    * Store plugin data
    */
-  public function writeToDatabase($plugin, $data) {
+  public function writeToDatabase($plugin, $timestamp, $data) {
     $data = self::sanitizeData($data);
     global $wpdb;
-    $table_name = $wpdb->prefix . "social_aggregator";
-    $rows_affected = $wpdb->insert($table_name, array(
-      'id' => md5($data['date'] . $data['content']),
+    $table = $wpdb->prefix . "social_aggregator";
+    // Check if ID exists before we try to write
+    $rows_affected = $wpdb->insert($table, array(
+      'id' => md5($plugin . $timestamp),
       'service' => $plugin,
-      'date' => $data['date'],
-      'content' => $data['content'],
+      'date' => $timestamp,
+      'content' => $data,
       )
     );
   }
   
   public function sanitizeData($data) {
-    // Serialize array and objects
+    if(is_array($data) || is_object($data)) {
+      $data = serialize($data);
+    }
     return $data;
   }
 

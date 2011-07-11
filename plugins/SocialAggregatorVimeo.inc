@@ -25,53 +25,28 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
    * most be returns in an structured array
    */
   public function data() {
-    $url = 'http://vimeo.com/api/v2/davidajnered/likes.php';
-    $result = $this->doCurl($url);
-    $result = unserialize($result);
-    return $this->sanitizeData($result);
+    $data = self::doCurl('http://vimeo.com/api/v2/davidajnered/likes.php');
+    $data = unserialize($data);
+    return $data;
   }
 
-  // Specific
-  private function buildURL($params) {
-    $param_string = '';
-    foreach($params as $name => $value) {
-      $param_string .= $name . '=' . $value;
-    }
-    return $param_string;
+  public function timestamp($data) {
+    return strtotime($data['liked_on']);
   }
 
-  /**
-   * This method is specific for every plugin
-   * Here we fetch the raw data and store it in an array defined by the plugin
-   * We need to do this to get consistency through the plugin 
-   * Fields:
-   * content = main content
-   * user = user name
-   * date = unix timestamp
-   */
-  private function sanitizeData($data) {
+  public function render() {
+    // change!!!
+    // print!!!
     $posts = array();
     foreach($data as $key => $value) {
       $post['user_name'] = $value['user_name'];
       $post['user_url'] = $value['user_url'];
       $post['post_title'] = $value['title'];
       $post['post_url'] = $value['url'];
-      $post['post_content'] = self::getImage($value['thumbnail_medium'], $value['url'], $key);
+      $post['post_content'] = $value['thumbnail_medium'];
       $post['post_date'] = strtotime($value['upload_date']);
       $posts[] = $post;
     }
     return $posts;
-  }
-  
-  private function getImage($url, $link = FALSE, $id = '') {
-    $output = '';
-    if($link) {
-      $output .= '<a href="' . $link . '">';
-    }
-    $output .= '<img class="vimeo-image" id="vimeo-image-' . $id . '" src="' . $url . '">';
-    if($link) {
-      $output .= '</a>';
-    }
-    return $output;
   }
 }

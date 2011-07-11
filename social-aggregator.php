@@ -39,7 +39,7 @@ function social_aggregator_install() {
   $sql = "CREATE TABLE " . $table_name . " (
     id varchar(64) NOT NULL,
     service text NOT NULL,
-    date timestamp NOT NULL,
+    date int(11) NOT NULL,
     content longtext NOT NULL,
     PRIMARY KEY (id)
   ) ENGINE=InnoDB DEFAULT CHARSET=latin1";

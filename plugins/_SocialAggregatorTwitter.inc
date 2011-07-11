@@ -31,8 +31,11 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
     $result = $this->doCurl($url);
     return json_decode($result);
   }
-  
-  $public function render() {
+
+  public function timestamp($data) {
+  }
+
+  public function render() {
     // call_user_func_array($function, array());
     // print data
   }

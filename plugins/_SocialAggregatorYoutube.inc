@@ -28,7 +28,6 @@ class SocialAggregatorYoutube extends SocialAggregatorPlugin {
     $url = 'https://gdata.youtube.com/feeds/api/users/davidajnered/uploads';
     $result = $this->doCurl($url);
     $result = unserialize($result);
-    error_log(var_export($result, TRUE));
     return $this->sanitizeData($result);
   }
 
