@@ -31,6 +31,12 @@ function social_aggregator_init() {
   $social_aggregator = new SocialAggregator();
 }
 
+add_action('wp_head', 'social_aggregator_head');
+function social_aggregator_head() {
+  $path = get_bloginfo('wpurl') . '/wp-content/plugins/social-aggregator/social-aggregator.css';
+  echo '<link rel="stylesheet" type="text/css" href="' . $path . '">';
+}
+
 add_action('admin_menu', 'social_aggregator_settings_menu');
 function social_aggregator_settings_menu() {
   add_menu_page( 'Social Aggregator', 'Social Aggregator', 'edit_posts', 'social-aggregator', 'social_aggregator_settings_page' );

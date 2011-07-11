@@ -56,7 +56,7 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
       $post['user_url'] = $value['user_url'];
       $post['post_title'] = $value['title'];
       $post['post_url'] = $value['url'];
-      $post['post_content'] = self::getImage($value['thumbnail_large'], $value['url'], $key);
+      $post['post_content'] = self::getImage($value['thumbnail_medium'], $value['url'], $key);
       $post['post_date'] = strtotime($value['upload_date']);
       $posts[] = $post;
     }
