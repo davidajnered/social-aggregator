@@ -31,15 +31,42 @@ class SocialAggregator {
   /**
    * Get the data from plugins api implementation
    */
-  public function getPluginData() {
+  public function getData() {
     $stored_values = get_option('social_aggregator_stored_values', $stored_values);
     $aggregated_data = array();
+    // add var that decide how often we collect new data. We don't need to do it on every request
     foreach($this->plugin_instances as $plugin_instance) {
-      // Get all the stored values related to this plugin
+      // Get all the stored values (username, password and stuff like that) related to this plugin
       $plugin_values = $stored_values[$plugin_instance->getMachineName()];
+      // Call plugin with values
       $aggregated_data = $plugin_instance->data($plugin_values);
+      // Write data to database
+      foreach($aggregated_data as $data) {
+        self::writeToDatabase($plugin_instance->getMachineName(), $data);
+      }
     }
     return $aggregated_data;
+  }
+
+  /**
+   * Store plugin data
+   */
+  public function writeToDatabase($plugin, $data) {
+    $data = self::sanitizeData($data);
+    global $wpdb;
+    $table_name = $wpdb->prefix . "social_aggregator";
+    $rows_affected = $wpdb->insert($table_name, array(
+      'id' => md5($data['date'] . $data['content']),
+      'service' => $plugin,
+      'date' => $data['date'],
+      'content' => $data['content'],
+      )
+    );
+  }
+  
+  public function sanitizeData($data) {
+    // Serialize array and objects
+    return $data;
   }
 
   /**

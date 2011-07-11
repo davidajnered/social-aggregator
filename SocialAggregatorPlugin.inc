@@ -8,6 +8,7 @@ abstract class SocialAggregatorPlugin {
    */
    abstract public function config();
    abstract public function data();
+   abstract public function render();
 
   /**
    * Add the plugin class name to the options array
@@ -30,23 +31,21 @@ abstract class SocialAggregatorPlugin {
     $stored_config_array[$config['plugin name']] = $config;
     update_option('social_aggregator_plugins', $stored_config_array);
   }
-  
+
+  // Add method that's called before the get data method to
+  // check if we need to fetch new data or just use old
+
   /**
    * Execute cURL.
-   * Can be overridden in child class is this method is insufficient
+   * Can be overridden in child class if this method is insufficient
    */
   public function doCurl($url) {
-    // Request
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POST, 0);
     $result = curl_exec($ch);
     curl_close($ch);
     return $result;
-  }
-  
-  public function writeToDatabase() {
-
   }
 
   public function getName() {

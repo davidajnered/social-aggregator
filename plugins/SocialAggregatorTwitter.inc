@@ -28,13 +28,13 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
     $params = func_get_args();
     $url_params = $this->buildURL($params[0]);
     $url = $base_url . '?' . $url_params;
-    //     $ch = curl_init($url);
-    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    //     $data = curl_exec($ch); 
-    //     curl_close($ch);
     $result = $this->doCurl($url);
-    $result = json_decode($result);
-    return $this->sanitizeData($result);
+    return json_decode($result);
+  }
+  
+  $public function render() {
+    // call_user_func_array($function, array());
+    // print data
   }
 
   // Specific
