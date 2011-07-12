@@ -34,19 +34,12 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
     return strtotime($data['liked_on']);
   }
 
-  public function render() {
-    // change!!!
-    // print!!!
-    $posts = array();
-    foreach($data as $key => $value) {
-      $post['user_name'] = $value['user_name'];
-      $post['user_url'] = $value['user_url'];
-      $post['post_title'] = $value['title'];
-      $post['post_url'] = $value['url'];
-      $post['post_content'] = $value['thumbnail_medium'];
-      $post['post_date'] = strtotime($value['upload_date']);
-      $posts[] = $post;
-    }
-    return $posts;
+  public function render($content) {
+    // Output starts ?>
+
+    <div><?php print $content['title']; ?></div>
+
+  <?php
+    // Output ends
   }
 }

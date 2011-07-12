@@ -8,7 +8,7 @@ abstract class SocialAggregatorPlugin {
    */
    abstract public function config();
    abstract public function data();
-   abstract public function render();
+   abstract public function render($content);
    abstract public function timestamp($data);
 
   /**

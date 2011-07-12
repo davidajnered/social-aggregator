@@ -4,15 +4,16 @@ class SocialAggregator {
   // Variables
   private static $instance;
   private $plugins;
-  private $plugin_objects;
+  private $plugin_instances;
   private $subdir = FALSE;
 
   /**
    * Singleton construct method
    */
   public function SocialAggregator() {
-    $this->getPlugins();
-    $this->setupPluginOptions();
+    self::getPlugins();
+    self::setupPluginOptions();
+    self::fetchData();
   }
 
   /**
@@ -22,16 +23,20 @@ class SocialAggregator {
    */
   public function setupPluginOptions() {
     foreach($this->plugins as $plugin) {
+      // Create and instance for all the plugins
       $plugin_instance = new $plugin;
-      $this->plugin_instances[] = $plugin_instance;
+      // Run plugin config
       $plugin_instance->config();
+      // Store them in an array
+      $this->plugin_instances[$plugin_instance->getMachineName()] = $plugin_instance;
+
     }
   }
   
   /**
    * Get the data from plugins api implementation
    */
-  public function getData() {
+  public function fetchData() {
     $stored_values = get_option('social_aggregator_stored_values', $stored_values);
     $aggregated_data = array();
 
@@ -42,8 +47,7 @@ class SocialAggregator {
       // Call plugin with values
       $plugin_data = $plugin_instance->data($plugin_values);
       if(!is_array($plugin_data)) {
-        error_log(var_export('fel', TRUE));
-        // Set error!
+        // Error: plugin returned no data
         return;
       }
       // Write data to database
@@ -51,8 +55,27 @@ class SocialAggregator {
         self::writeToDatabase($plugin_instance->getMachineName(), $plugin_instance->timestamp($data), $data);
       }
     }
-
     return $aggregated_data;
+  }
+  
+  public function data() {
+    global $wpdb;
+    $table = $wpdb->prefix . "social_aggregator";
+    $query = "SELECT * FROM " . $table . " ORDER BY date ASC LIMIT 0,10";
+    if ($wpdb->query($query) === FALSE) {
+      return FALSE;
+    }
+    else {
+      $results = $wpdb->get_results($query);
+      foreach($results as $result) {
+        $content = $result->content;
+        $content = unserialize($content);
+
+        // load the correct plugin instance and call render with $content
+        $plugin_instance = $this->plugin_instances[$result->service];
+        $plugin_instance->render($content);
+      }
+    }
   }
 
   /**
@@ -62,14 +85,15 @@ class SocialAggregator {
     $data = self::sanitizeData($data);
     global $wpdb;
     $table = $wpdb->prefix . "social_aggregator";
-    // Check if ID exists before we try to write
-    $rows_affected = $wpdb->insert($table, array(
-      'id' => md5($plugin . $timestamp),
-      'service' => $plugin,
-      'date' => $timestamp,
-      'content' => $data,
-      )
-    );
+    
+    $id = md5($plugin . $timestamp);
+    $data = mysql_real_escape_string($data);
+    $query = "INSERT IGNORE INTO " . $table . " (id, service, date, content) VALUES ('$id', '$plugin', $timestamp, '$data')";
+    if ($wpdb->query($query) === FALSE) {
+      return FALSE;
+    } else {
+      return $wpdb->get_results($query);
+    }
   }
   
   public function sanitizeData($data) {

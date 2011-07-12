@@ -125,7 +125,7 @@ function social_aggregator_get_formated_field($plugin, $name, $field) {
 
 function the_aggregated_feed() {
   global $social_aggregator;
-  $posts = $social_aggregator->getData(); ?>
+  $posts = $social_aggregator->data(); ?>
 
   <ul class="social-aggregator-feed">
   <?php foreach($posts as $post) : ?>
