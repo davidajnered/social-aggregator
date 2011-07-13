@@ -37,7 +37,11 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
   public function render($content) {
     // Output starts ?>
 
-    <div><?php print $content['title']; ?></div>
+    <div>
+      <h2>Vimeo: <?php print $content['title']; ?></h2>
+      <img src="<?php print $content['thumbnail_medium']; ?>"><br/>
+      <?php print substr($content['description'], 0, 100); ?>...
+    </div>
 
   <?php
     // Output ends

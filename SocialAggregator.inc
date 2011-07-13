@@ -22,6 +22,7 @@ class SocialAggregator {
    * This is stored in an the option array so we can display the correct fields on the settings page
    */
   public function setupPluginOptions() {
+    self::removeUninstalledPlugins();
     foreach($this->plugins as $plugin) {
       // Create and instance for all the plugins
       $plugin_instance = new $plugin;
@@ -29,8 +30,21 @@ class SocialAggregator {
       $plugin_instance->config();
       // Store them in an array
       $this->plugin_instances[$plugin_instance->getMachineName()] = $plugin_instance;
-
     }
+  }
+  
+  public function removeUninstalledPlugins() {
+    $installed = get_option('social_aggregator_plugins');
+    error_log(var_export('-----------------------', TRUE));
+    $present = $this->plugins;
+    foreach($present as $plugin) {
+      error_log(var_export($plugin, TRUE));
+      error_log(var_export($installed[$plugin], TRUE));
+      if($installed[$plugin]) {
+        $new_install[] = $installed[$present];
+      }
+    }
+    add_option('social_aggregator_plugins', $new_install);
   }
   
   /**
@@ -61,7 +75,7 @@ class SocialAggregator {
   public function data() {
     global $wpdb;
     $table = $wpdb->prefix . "social_aggregator";
-    $query = "SELECT * FROM " . $table . " ORDER BY date ASC LIMIT 0,10";
+    $query = "SELECT * FROM " . $table . " ORDER BY date DESC LIMIT 0,30";
     if ($wpdb->query($query) === FALSE) {
       return FALSE;
     }
@@ -70,7 +84,6 @@ class SocialAggregator {
       foreach($results as $result) {
         $content = $result->content;
         $content = unserialize($content);
-
         // load the correct plugin instance and call render with $content
         $plugin_instance = $this->plugin_instances[$result->service];
         $plugin_instance->render($content);
@@ -108,7 +121,7 @@ class SocialAggregator {
    */
   private function getPlugins() {
     $dir = dirname(__FILE__) . '/plugins';
-    $this->checkDir($dir);
+    self::checkDir($dir);
   }
   
   /**
@@ -123,10 +136,10 @@ class SocialAggregator {
             $file_path = $dir . '/' . $file;
             if(is_dir($file_path) && !$this->subdir) {
               $this->subdir = TRUE;
-              $this->checkDir($file_path);
+              self::checkDir($file_path);
               break;
             } else {
-              $result = $this->checkFile($file, $file_path);
+              $result = self::checkFile($file, $file_path);
               if($result && $this->subdir) {
                 break;
               }

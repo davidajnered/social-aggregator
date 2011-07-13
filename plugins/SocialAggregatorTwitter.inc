@@ -6,7 +6,7 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
    */
   public function config() {
     $config = array(
-      'plugin name' => 'Twitter For SA',
+      'plugin name' => 'Twitter',
       'user config' => array(
         'screen name' => array(
           'required' => TRUE,
@@ -33,11 +33,18 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
   }
 
   public function timestamp($data) {
+    return strtotime($data->created_at);
   }
 
-  public function render() {
+  public function render($content) {
     // call_user_func_array($function, array());
-    // print data
+    ?>
+      <div>
+        <h2>Twitter</h2>
+        <?php print $content->text; ?><br>
+        <i><?php print $content->created_at; ?></i>
+      </div>
+    <?php
   }
 
   // Specific
