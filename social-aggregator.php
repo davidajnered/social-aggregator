@@ -8,18 +8,6 @@
  * Author URI: http://davidajnered.com/
  * Text Domain: social-aggregator
  */
- 
-/*
-  Hur den är tänkt att fungera:
-  Social aggregator tillhandahåller ett ramverk för att skapa ett aggregerat flöde. För att lägga till ett nätverk i flödet måste det skapas en plugin.
-  Pluginen måste:
-  * Tillhandahålla en funktion för att kunna hämta data från tjänsten
-  * Hook
-  
-  To think about
-  Hur anropar man en okänd funktion i wordpress?
-  Cachning!
-*/
 
 $social_aggregator;
 

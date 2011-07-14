@@ -1,5 +1,5 @@
 <?php
-class SocialAggregatorVimeo extends SocialAggregatorPlugin {
+class SocialAggregatorVimeo implements SocialAggregatorPluginInterface {
 
   /**
    * User details
@@ -24,7 +24,7 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
    * Get the data from service api
    * most be returns in an structured array
    */
-  public function data() {
+  public function data($params) {
     $ch = curl_init('http://vimeo.com/api/v2/davidajnered/likes.php');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POST, 0);
@@ -33,16 +33,22 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
     return unserialize($result);
   }
 
+  /**
+   * Return the date when the post was created
+   */
   public function timestamp($data) {
     return strtotime($data['liked_on']);
   }
 
-  public function render($content) { ?>
+  /**
+   * Print data to view
+   */
+  public function render($data) { ?>
 
     <div>
-      <h2>Vimeo: <?php print $content['title']; ?></h2>
-      <img src="<?php print $content['thumbnail_medium']; ?>"><br/>
-      <?php print substr($content['description'], 0, 100); ?>...
+      <h2>Vimeo: <?php print $data['title']; ?></h2>
+      <img src="<?php print $data['thumbnail_medium']; ?>"><br/>
+      <?php print substr($data['description'], 0, 100); ?>...
     </div>
 
   <?php

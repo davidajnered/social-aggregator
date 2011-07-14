@@ -1,5 +1,5 @@
 <?php
-class SocialAggregatorTwitter implements SocialAggregatorPluginInterface{
+class SocialAggregatorTwitter implements SocialAggregatorPluginInterface {
 
   /**
    * User details
@@ -9,6 +9,7 @@ class SocialAggregatorTwitter implements SocialAggregatorPluginInterface{
       'plugin name' => 'Twitter',
       'user config' => array(
         'screen name' => array(
+          'nice name' => 'username',
           'required' => TRUE,
           'type' => 'text',
         ),
@@ -25,7 +26,7 @@ class SocialAggregatorTwitter implements SocialAggregatorPluginInterface{
    */
   public function data($params) {
     $base_url = 'http://api.twitter.com/1/statuses/user_timeline.json';
-    $url_params = $this->buildURL($params[0]);
+    $url_params = self::buildURL($params);
     $url = $base_url . '?' . $url_params;
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -39,27 +40,23 @@ class SocialAggregatorTwitter implements SocialAggregatorPluginInterface{
     return strtotime($data->created_at);
   }
 
-  public function render($content) { ?>
+  public function render($data) { ?>
       <div>
         <h2>Twitter</h2>
-        <?php print $content->text; ?><br>
-        <i><?php print $content->created_at; ?></i>
+        <?php print $data->text; ?><br>
+        <i><?php print $data->created_at; ?></i>
       </div>
     <?php
   }
 
   // Specific
   private function buildURL($params) {
-    if($params != NULL) {
+    if(!empty($params)) {
       $param_string = '';
       foreach($params as $name => $value) {
         $param_string .= $name . '=' . $value;
       }
       return $param_string;
-    }
-    else {
-      $e = sprintf('Social Aggregator: missing parameter for %s', $this->plugin_name);
-      error_log(var_export($e, TRUE));
     }
   }
 
