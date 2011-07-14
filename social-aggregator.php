@@ -50,6 +50,7 @@ function social_aggregator_settings_menu() {
 }
 
 function social_aggregator_settings_page() {
+  global $social_aggregator;
   if (!current_user_can('manage_options')) {
     wp_die( __('You do not have sufficient permissions to access this page.') );
   }
@@ -65,11 +66,18 @@ function social_aggregator_settings_page() {
   // Is form submitted?
   if( isset($_POST[ $hidden_submit_field ]) && $_POST[ $hidden_submit_field ] == 'Y' ) {
     $ignore = array('sa_submit_hidden', 'Submit');
-    foreach($_POST as $name => $value) {
-      if(!in_array($name, $ignore)) {
+    foreach($_POST as $field => $value) {
+      if(!in_array($field, $ignore)) {
         // Explode name to get [0] = plugin machine name, [1] = field name
-        $names = explode(':', $name);
-        $stored_values[$names[0]][$names[1]] = $value;
+        // We only use this for plugin fields where we have to know what plugin
+        // can we use social_aggregator_get_field_value here instead?
+        $parts = explode(':', $field);
+        if(isset($parts[1])) {
+          $stored_values[$parts[0]][$parts[1]] = $value;
+        }
+        else {
+          $stored_values[$field] = $value;
+        }
       }
     }
     update_option('social_aggregator_stored_values', $stored_values); ?>
@@ -81,20 +89,7 @@ function social_aggregator_settings_page() {
 <div class="wrap">
   <h2>Social Aggregator Settings</h2>
   <form name="networks" method="post" action="">
-    <input type="hidden" name="<?php echo $hidden_submit_field; ?>" value="Y">
-    <h3>Plugins:</h3>
-    <?php foreach($plugins as $plugin) : ?>
-      <fieldset>
-        <legend><?php print $plugin['plugin name']; ?></legend>
-        <?php foreach($plugin['user config'] as $name => $field) {
-          social_aggregator_get_formated_field($plugin, $name, $field);
-        } ?>
-      </fieldset>
-    <?php endforeach; ?>
-
-    <p class="submit">
-      <input type="submit" name="Submit" class="button-primary" value="Save Changes" />
-    </p>
+    <?php $social_aggregator->adminForm(); ?>
   </form>
 </div>
 
@@ -107,12 +102,51 @@ function social_aggregator_get_formated_field($plugin, $name, $field) {
   $field_stored_value = $stored_values[$plugin['machine name']][$field['machine name']]; ?>
   <p>
     <label for="<?php print $field_name; ?>"><?php print $name; ?></label>
-    <input type="<?php print $field['type']; ?>" name="<?php print $field_name; ?>" value="<?php print isset($field_stored_value) ? $field_stored_value : ''; ?>" />
+    <!--<input type="<?php print $field['type']; ?>" name="<?php print $field_name; ?>" value="<?php print isset($field_stored_value) ? $field_stored_value : ''; ?>" />-->
+    <input type="<?php print $field['type']; ?>" name="<?php print $field_name; ?>" value="<?php print social_aggregator_get_stored_value($field_name); ?>" />
   </p>
 <?php
+}
+
+function social_aggregator_get_stored_value($field) {
+  $values = get_option('social_aggregator_stored_values');
+  $parts = explode(':', $field);
+  if(isset($parts[1])) {
+    return $values[$parts[0]][$parts[1]];
+  }
+  return $values[$field];
 }
 
 function the_aggregated_feed() {
   global $social_aggregator;
   $posts = $social_aggregator->data();
 }
+
+/*
+<!--<input type="hidden" name="<?php echo $hidden_submit_field; ?>" value="Y">
+<h3>Plugins:</h3>
+<?php foreach($plugins as $plugin) : ?>
+  <fieldset>
+    <legend><?php print $plugin['plugin name']; ?></legend>
+    <?php foreach($plugin['user config'] as $name => $field) {
+      social_aggregator_get_formated_field($plugin, $name, $field);
+    } ?>
+  </fieldset>
+<?php endforeach; ?>
+
+<fieldset>
+  <h3>Global Settings</h3>
+  <p>
+    <label for="">Update Intervals<label>
+    <input type="text" name="update_intervals" value="<?php print social_aggregator_get_stored_value('update_intervals'); ?>" />
+  </p>
+  <p>
+    <label for="">Request Timeout<label>
+    <input type="text" name="request_timeout" value="<?php print social_aggregator_get_stored_value('request_timeout'); ?>" />
+  </p>
+</fieldset>
+
+<p class="submit">
+  <input type="submit" name="Submit" class="button-primary" value="Save Changes" />
+</p>-->
+*/

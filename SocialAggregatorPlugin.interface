@@ -2,9 +2,9 @@
 
 interface SocialAggregatorPluginInterface {
 
-    public function config();
-    public function data($params);
-    public function render($data);
-    public function timestamp($data);
+  public function config();
+  public function data($params);
+  public function render($data);
+  public function timestamp($data);
 
 }

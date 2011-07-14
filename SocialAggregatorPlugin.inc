@@ -36,8 +36,8 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
    * @return array defining configuration needed for the plugin
    */
   public function config() {
-    $this->options = $this->instance->config();
-    return self::processConfig($this->options);
+    return $this->instance->config();
+    // return self::processConfig($this->options);
   }
 
   /**
@@ -101,4 +101,10 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
     return get_class($this->instance);
   }
 
+  /**
+   * Return plugin name
+   */
+  public function getPluginName() {
+    return $this->instance->pluginName;
+  }
 }

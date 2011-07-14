@@ -1,21 +1,30 @@
 <?php
 class SocialAggregatorVimeo implements SocialAggregatorPluginInterface {
 
+  public $pluginName = 'Vimeo';
+
   /**
    * User details
    */
   public function config() {
-    $config = array(
-      'plugin name' => 'Vimeo',
-      'user config' => array(
-        'username' => array(
-          'required' => TRUE,
-          'type' => 'text',
-        ),
-      ),
-      'api return' => 'json',
+    $fields[] = array(
+      'title' => 'Username',
+      'name' => 'username',
+      'type' => 'text',
     );
-    return $config;
+    $fields[] = array(
+      'title'   => 'Likes',
+      'name'    => 'resource',
+      'value'   => 'likes',
+      'type'    => 'checkbox',
+    );
+    $fields[] = array(
+      'title'   => 'Videos',
+      'name'    => 'resource',
+      'value'   => 'videos',
+      'type'    => 'checkbox',
+    );
+    return $fields;
   }
 
   /**

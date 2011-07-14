@@ -2,8 +2,8 @@
 class SocialAggregator {
 
   // Variables
-  private $plugin_classes;
-  private $plugin_instances;
+  private $pluginClasses;
+  private $pluginInstances;
 
   /**
    * Singleton construct method
@@ -20,16 +20,14 @@ class SocialAggregator {
    * This is stored in an the option array so we can display the correct fields on the settings page
    */
   public function setupPluginOptions() {
-    $configuration = array();
-    foreach($this->plugin_classes as $plugin) {
+    foreach($this->pluginClasses as $plugin) {
       // Create and instance all the present plugins
       $instance = new SocialAggregatorPlugin();
       $instance->init($plugin);
       // Get the configuration array from the plugin and store it as an option for easy access
-      $configuration += $instance->config();
-      $this->plugin_instances[$instance->getClassName()] = $instance;
+      //$instance->config();
+      $this->pluginInstances[$instance->getClassName()] = $instance;
     }
-    update_option('social_aggregator_plugins', $configuration);
   }
 
   /**
@@ -38,7 +36,7 @@ class SocialAggregator {
   public function fetchData() {
     $options = get_option('social_aggregator_stored_values', array());
     // Add a variable that decide how often we collect new data. We don't need to do it on every request
-    foreach($this->plugin_instances as $plugin) {
+    foreach($this->pluginInstances as $plugin) {
       // Get all the stored values (username, password and stuff like that) related to this plugin
       $values = $options[$plugin->getMachineName()];
       // Call plugin with values
@@ -51,14 +49,14 @@ class SocialAggregator {
       }
       else {
         // Unset instance for this request
-        // unset($this->plugin_instances[get_class($plugin_instance)]);
+        unset($this->pluginInstances[$plugin->getClassName()]);
       }
     }
   }
 
   /**
    * Write plugin data to database
-   * @param $plugin_instance The plugin instance
+   * @param $plugin The plugin instance
    * @param $data The post data to be inserted in the database
    * @return If query returns data we return the result object, else false
    */
@@ -95,8 +93,8 @@ class SocialAggregator {
         $content = $result->content;
         $content = unserialize($content);
         // load the correct plugin instance and call render with $content
-        $plugin_instance = $this->plugin_instances[$result->plugin];
-        $plugin_instance->render($content);
+        $pluginInstance = $this->pluginInstances[$result->plugin];
+        $pluginInstance->render($content);
       }
     }
   }
@@ -146,9 +144,22 @@ class SocialAggregator {
   private function verifyFile($file, $file_path) {
     if(strpos($file, 'SocialAggregator') === 0) {
       require_once($file_path);
-      $this->plugin_classes[] = str_replace('.inc', '', $file);
+      $this->pluginClasses[] = str_replace('.inc', '', $file);
       // Load stored values and set the present once as active, the disabled once as passiv (1's and 0's)
       return TRUE;
+    }
+  }
+
+  public function adminForm() {
+    foreach($this->pluginInstances as $plugin) {
+      $config = $plugin->config();
+      print '<h3>' . $plugin->getPluginName() . '</h3>';
+      foreach($config as $field) : ?>
+        <p>
+          <label for="<?php print $field['name']; ?>"><?php print $field['title'] ? $field['title'] : ucfirst($field['name']); ?></label>
+          <input type="<?php print $field['type']; ?>" name="<?php print $field['name']?>" />
+        </p>
+      <?php endforeach;
     }
   }
 } // End of class
