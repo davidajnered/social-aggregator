@@ -1,5 +1,5 @@
 <?php
-class SocialAggregatorTwitter extends SocialAggregatorPlugin {
+class SocialAggregatorTwitter implements SocialAggregatorPluginInterface{
 
   /**
    * User details
@@ -14,7 +14,7 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
         ),
       )
     );
-    $this->savePluginConfig($config);
+    return $config;
   }
 
   /**
@@ -23,12 +23,15 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
    * Get the data from service api
    * most be returns in an structured array
    */
-  public function data() {
+  public function data($params) {
     $base_url = 'http://api.twitter.com/1/statuses/user_timeline.json';
-    $params = func_get_args();
     $url_params = $this->buildURL($params[0]);
     $url = $base_url . '?' . $url_params;
-    $result = $this->doCurl($url);
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 0);
+    $result = curl_exec($ch);
+    curl_close($ch);
     return json_decode($result);
   }
 
@@ -36,9 +39,7 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
     return strtotime($data->created_at);
   }
 
-  public function render($content) {
-    // call_user_func_array($function, array());
-    ?>
+  public function render($content) { ?>
       <div>
         <h2>Twitter</h2>
         <?php print $content->text; ?><br>
@@ -49,31 +50,17 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
 
   // Specific
   private function buildURL($params) {
-    $param_string = '';
-    foreach($params as $name => $value) {
-      $param_string .= $name . '=' . $value;
+    if($params != NULL) {
+      $param_string = '';
+      foreach($params as $name => $value) {
+        $param_string .= $name . '=' . $value;
+      }
+      return $param_string;
     }
-    return $param_string;
+    else {
+      $e = sprintf('Social Aggregator: missing parameter for %s', $this->plugin_name);
+      error_log(var_export($e, TRUE));
+    }
   }
 
-  /**
-   * This method is specific for every plugin
-   * Here we fetch the raw data and store it in an array defined by the plugin
-   * We need to do this to get consistency through the plugin 
-   * Fields:
-   * content = main content
-   * user = user name
-   * date = unix timestamp
-   */
-  private function sanitizeData($data) {
-    $posts = array();
-    foreach($data as $raw) {
-      $post = NULL;
-      $post['user']    = $raw->user->screen_name;
-      $post['content'] = $raw->text;
-      $post['date']    = strtotime($raw->created_at);
-      $posts[] = $post;
-    }
-    return $posts;
-  }
 }

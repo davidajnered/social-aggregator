@@ -22,31 +22,17 @@ class SocialAggregator {
    * This is stored in an the option array so we can display the correct fields on the settings page
    */
   public function setupPluginOptions() {
-    self::removeUninstalledPlugins();
     foreach($this->plugins as $plugin) {
       // Create and instance for all the plugins
-      $plugin_instance = new $plugin;
+      $instance = new SocialAggregatorPlugin();
+      $instance->init($plugin);
       // Run plugin config
-      $plugin_instance->config();
+      $instance->config();
       // Store them in an array
-      $this->plugin_instances[$plugin_instance->getMachineName()] = $plugin_instance;
+      $this->plugin_instances[$instance->getClassName()] = $instance;
     }
   }
-  
-  public function removeUninstalledPlugins() {
-    $installed = get_option('social_aggregator_plugins');
-    error_log(var_export('-----------------------', TRUE));
-    $present = $this->plugins;
-    foreach($present as $plugin) {
-      error_log(var_export($plugin, TRUE));
-      error_log(var_export($installed[$plugin], TRUE));
-      if($installed[$plugin]) {
-        $new_install[] = $installed[$present];
-      }
-    }
-    add_option('social_aggregator_plugins', $new_install);
-  }
-  
+
   /**
    * Get the data from plugins api implementation
    */
@@ -55,21 +41,22 @@ class SocialAggregator {
     $aggregated_data = array();
 
     // add var that decide how often we collect new data. We don't need to do it on every request
-    foreach($this->plugin_instances as $plugin_instance) {
+    foreach($this->plugin_instances as $plugin) {
       // Get all the stored values (username, password and stuff like that) related to this plugin
-      $plugin_values = $stored_values[$plugin_instance->getMachineName()];
+      $plugin_values = $stored_values[$plugin->getMachineName()];
       // Call plugin with values
-      $plugin_data = $plugin_instance->data($plugin_values);
-      if(!is_array($plugin_data)) {
-        // Error: plugin returned no data
-        return;
+      $plugin_data = $plugin->data($plugin_values);
+      if(is_array($plugin_data)) {
+        // Write data to database
+        foreach($plugin_data as $data) {
+          self::writeToDatabase($plugin, $plugin->timestamp($data), $data);
+        }
       }
-      // Write data to database
-      foreach($plugin_data as $data) {
-        self::writeToDatabase($plugin_instance->getMachineName(), $plugin_instance->timestamp($data), $data);
+      else {
+        // Unset instance for this request
+        unset($this->plugin_instances[get_class($plugin_instance)]);
       }
     }
-    return $aggregated_data;
   }
   
   public function data() {
@@ -85,7 +72,7 @@ class SocialAggregator {
         $content = $result->content;
         $content = unserialize($content);
         // load the correct plugin instance and call render with $content
-        $plugin_instance = $this->plugin_instances[$result->service];
+        $plugin_instance = $this->plugin_instances[$result->plugin];
         $plugin_instance->render($content);
       }
     }
@@ -94,14 +81,15 @@ class SocialAggregator {
   /**
    * Store plugin data
    */
-  public function writeToDatabase($plugin, $timestamp, $data) {
+  public function writeToDatabase($plugin_instance, $timestamp, $data) {
     $data = self::sanitizeData($data);
+    $plugin = get_class($plugin_instance);
     global $wpdb;
     $table = $wpdb->prefix . "social_aggregator";
     
     $id = md5($plugin . $timestamp);
     $data = mysql_real_escape_string($data);
-    $query = "INSERT IGNORE INTO " . $table . " (id, service, date, content) VALUES ('$id', '$plugin', $timestamp, '$data')";
+    $query = "INSERT IGNORE INTO " . $table . " (id, plugin, date, content) VALUES ('$id', '$plugin', $timestamp, '$data')";
     if ($wpdb->query($query) === FALSE) {
       return FALSE;
     } else {

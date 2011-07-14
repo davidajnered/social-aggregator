@@ -27,6 +27,7 @@ add_action('init', 'social_aggregator_init');
 function social_aggregator_init() {
   require_once('SocialAggregator.inc');
   require_once('SocialAggregatorPlugin.inc');
+  require_once('SocialAggregatorPlugin.interface');
   global $social_aggregator;
   $social_aggregator = new SocialAggregator();
 }
@@ -38,7 +39,7 @@ function social_aggregator_install() {
 
   $sql = "CREATE TABLE " . $table_name . " (
     id varchar(64) NOT NULL,
-    service text NOT NULL,
+    plugin text NOT NULL,
     date int(11) NOT NULL,
     content longtext NOT NULL,
     PRIMARY KEY (id)

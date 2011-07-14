@@ -1,0 +1,8 @@
+<?php
+
+interface SocialAggregatorPluginInterface {
+    public function config();
+    public function data($params);
+    public function render($content);
+    public function timestamp($data);
+}

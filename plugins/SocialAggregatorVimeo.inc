@@ -15,7 +15,7 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
       ),
       'api return' => 'json',
     );
-    $this->savePluginConfig($config);
+    return $config;
   }
 
   /**
@@ -25,17 +25,19 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
    * most be returns in an structured array
    */
   public function data() {
-    $data = self::doCurl('http://vimeo.com/api/v2/davidajnered/likes.php');
-    $data = unserialize($data);
-    return $data;
+    $ch = curl_init('http://vimeo.com/api/v2/davidajnered/likes.php');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 0);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    return unserialize($result);
   }
 
   public function timestamp($data) {
     return strtotime($data['liked_on']);
   }
 
-  public function render($content) {
-    // Output starts ?>
+  public function render($content) { ?>
 
     <div>
       <h2>Vimeo: <?php print $content['title']; ?></h2>
@@ -44,6 +46,5 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
     </div>
 
   <?php
-    // Output ends
   }
 }
