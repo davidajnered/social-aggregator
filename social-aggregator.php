@@ -38,6 +38,7 @@ function social_aggregator_install() {
 }
 
 add_action('wp_head', 'social_aggregator_head');
+add_action('admin_head', 'social_aggregator_head');
 function social_aggregator_head() {
   $path = get_bloginfo('wpurl') . '/wp-content/plugins/social-aggregator/social-aggregator.css';
   echo '<link rel="stylesheet" type="text/css" href="' . $path . '">';
@@ -54,7 +55,6 @@ function social_aggregator_settings_page() {
   if (!current_user_can('manage_options')) {
     wp_die( __('You do not have sufficient permissions to access this page.') );
   }
-  $social_aggregator->adminFormSubmit();
 ?>
 
 <div class="wrap">
@@ -91,32 +91,3 @@ function the_aggregated_feed() {
   global $social_aggregator;
   $posts = $social_aggregator->data();
 }
-
-/*
-<!--<input type="hidden" name="<?php echo $hidden_submit_field; ?>" value="Y">
-<h3>Plugins:</h3>
-<?php foreach($plugins as $plugin) : ?>
-  <fieldset>
-    <legend><?php print $plugin['plugin name']; ?></legend>
-    <?php foreach($plugin['user config'] as $name => $field) {
-      social_aggregator_get_formated_field($plugin, $name, $field);
-    } ?>
-  </fieldset>
-<?php endforeach; ?>
-
-<fieldset>
-  <h3>Global Settings</h3>
-  <p>
-    <label for="">Update Intervals<label>
-    <input type="text" name="update_intervals" value="<?php print social_aggregator_get_stored_value('update_intervals'); ?>" />
-  </p>
-  <p>
-    <label for="">Request Timeout<label>
-    <input type="text" name="request_timeout" value="<?php print social_aggregator_get_stored_value('request_timeout'); ?>" />
-  </p>
-</fieldset>
-
-<p class="submit">
-  <input type="submit" name="Submit" class="button-primary" value="Save Changes" />
-</p>-->
-*/

@@ -14,13 +14,13 @@ class SocialAggregatorVimeo implements SocialAggregatorPluginInterface {
     );
     $fields['resources'][] = array(
       'title'   => 'Likes',
-      'name'    => 'resource[]',
+      'name'    => 'resource',
       'value'   => 'likes',
       'type'    => 'checkbox',
     );
     $fields['resources'][] = array(
       'title'   => 'Videos',
-      'name'    => 'resource[]',
+      'name'    => 'resource',
       'value'   => 'videos',
       'type'    => 'checkbox',
     );

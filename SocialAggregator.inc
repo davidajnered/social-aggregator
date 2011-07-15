@@ -9,8 +9,8 @@ class SocialAggregator {
    * Singleton construct method
    */
   public function SocialAggregator() {
-    self::getPlugins();
-    self::setupPluginOptions();
+    self::scanPluginDir();
+    self::initPlugins();
     self::fetchData();
   }
 
@@ -19,37 +19,32 @@ class SocialAggregator {
    * We need to get data from the plugin like specifications for the API call to the service
    * This is stored in an the option array so we can display the correct fields on the settings page
    */
-  public function setupPluginOptions() {
+  public function initPlugins() {
     foreach($this->pluginClasses as $plugin) {
       // Create and instance all the present plugins
       $instance = new SocialAggregatorPlugin();
       $instance->init($plugin);
-      // Get the configuration array from the plugin and store it as an option for easy access
-      //$instance->config();
       $this->pluginInstances[$instance->getClassName()] = $instance;
     }
+    // We check if settings form is submitted early on so we don't have to load data twice due to the redirect
+    self::adminFormSubmit();
   }
 
   /**
    * Get the data from plugins api implementation
    */
   public function fetchData() {
-    $options = get_option('social_aggregator_stored_values', array());
     // Add a variable that decide how often we collect new data. We don't need to do it on every request
     foreach($this->pluginInstances as $plugin) {
-      // Get all the stored values (username, password and stuff like that) related to this plugin
-      $values = $options[$plugin->getMachineName()];
-      // Call plugin with values
-      $data = $plugin->data($values);
-      if(is_array($data)) {
-        // Loop through all the posts and write them to the database
-        foreach($data as $post) {
-          self::dbWrite($plugin, $post);
+      if($plugin->isActive()) {
+        $values = get_option('social_aggregator_' . $plugin->getMachineName() . '_values', array());
+        $data = $plugin->data($values);
+        if(is_array($data)) {
+          // Loop through all the posts and write them to the database
+          foreach($data as $post) {
+            self::dbWrite($plugin, $post);
+          }
         }
-      }
-      else {
-        // Unset instance for this request
-        unset($this->pluginInstances[$plugin->getClassName()]);
       }
     }
   }
@@ -81,9 +76,24 @@ class SocialAggregator {
    * @return return false if render fails
    */
   public function data() {
+    // This one needs improvement. We need to check what plugins are active before we do the query.
+    // Only select posts from active plugins
     global $wpdb;
     $table = $wpdb->prefix . "social_aggregator";
-    $query = "SELECT * FROM " . $table . " ORDER BY date DESC LIMIT 0,30";
+    
+    $active_plugins = self::getActivePlugins();
+    error_log(var_export($active_plugins, TRUE));
+    $loop = 0;
+    foreach($active_plugins as $plugin) {
+      if($loop == 0) {
+         $where = ' WHERE';
+      } else {
+        $where .= ' AND';
+      }
+      $where .= " plugin = '" . $plugin['class'] . "'";
+    }
+    $query = "SELECT * FROM " . $table . $where . " ORDER BY date DESC LIMIT 0,30";
+    error_log(var_export($query, TRUE));
     if ($wpdb->query($query) === FALSE) {
       return FALSE;
     }
@@ -94,7 +104,9 @@ class SocialAggregator {
         $content = unserialize($content);
         // load the correct plugin instance and call render with $content
         $pluginInstance = $this->pluginInstances[$result->plugin];
-        $pluginInstance->render($content);
+        if(is_object($pluginInstance)) {
+          $pluginInstance->render($content);
+        }
       }
     }
   }
@@ -102,7 +114,7 @@ class SocialAggregator {
   /**
    * Scan through the plugin folder for available plugins
    */
-  private function getPlugins() {
+  private function scanPluginDir() {
     $dir = dirname(__FILE__) . '/plugins';
     self::verifyDirectory($dir);
   }
@@ -151,75 +163,151 @@ class SocialAggregator {
   }
 
   public function adminForm() {
-    foreach($this->pluginInstances as $plugin) {
-      $fields = $plugin->config();
-      print '<h3>' . $plugin->getPluginName() . '</h3>';
-      foreach($fields as $key => $field) : ?>
-        <p>
-        <?php
-          if(!is_int($key)) {
-            $deep_fields = $field;
-            foreach($deep_fields as $field) {
-              self::adminFormElement($field);
-            }
-          }
-          else {
-            self::adminFormElement($field);
-          }
-        ?>
-        </p>
-      <?php endforeach; ?>
-      <input type="hidden" name="social_aggregator_submit" value="y">
-      <input class="button-primary" type="submit" name="submit" value="Save" />
-      <?php
-    }
+    foreach($this->pluginInstances as $plugin) :
+      $fields = $plugin->config(); ?>
+      <div class="social_aggregator_plugin_wrapper" id="social_aggregator_<?php print $plugin->getMachineName(); ?>_wrapper">
+        <h3><?php print $plugin->getPluginName(); ?></h3>
+        <?php foreach($fields as $key => $field) : ?>
+          <?php
+            if(!is_int($key)) : ?>
+              <h4><?php print ucfirst($key); ?></h4>
+              <?php $deep_fields = $field;
+              foreach($deep_fields as $field) {
+                self::adminFormElement($field, $plugin->getMachineName());
+              }
+            else :
+              self::adminFormElement($field, $plugin->getMachineName());
+            endif;
+          ?>
+        <?php endforeach; ?>
+        </div>
+    <?php endforeach; ?>
+    <input type="hidden" name="social_aggregator_submit" value="y" />
+    <input class="button-primary" type="submit" name="submit" value="Save" />
+  <?php
   }
+
   public function adminFormSubmit() {
-    // $plugins = get_option('social_aggregator_plugins');
-    // Is form submitted?
     if(isset($_POST['social_aggregator_submit']) && $_POST['social_aggregator_submit'] == 'y') {
+      update_option('social_aggregator_submitted', TRUE);
       $ignore = array('social_aggregator_submit', 'Submit');
-      error_log(var_export($_POST, TRUE));
       foreach($_POST as $field => $value) {
         if(!in_array($field, $ignore)) {
-          // Explode name to get [0] = plugin machine name, [1] = field name
-          // We only use this for plugin fields where we have to know what plugin
-          // can we use social_aggregator_get_field_value here instead?
           $parts = explode(':', $field);
+          // Plugin settings
           if(isset($parts[1])) {
-            $stored_values[$parts[0]][$parts[1]] = $value;
+            $plugin = $parts[0];
+            $values[$parts[1]] = $value;
+            $plugin = self::getPluginFromName($plugin);
+            if(is_object($plugin)) {
+              $plugin->storeValues($values);
+            }
           }
+          // Global settings
           else {
-            $stored_values[$field] = $value;
+            $values[$field] = $value;
+            update_option('social_aggregator_values', $values);
           }
         }
       }
-    }
-    //error_log(var_export($stored_values, TRUE));
-    update_option('social_aggregator_values', $stored_values); ?>
-    <div class="updated"><p><strong><?php _e('settings saved.', 'menu-test' ); ?></strong></p></div>
-  <?php }
-  
-  private function adminFormElement($field) { ?>
-    <label for="<?php print $field['name']; ?>">
-      <?php print $field['title'] ? $field['title'] : ucfirst($field['name']); ?>
-    </label>
-    <input type="<?php print $field['type']; ?>"
-           name="<?php print $field['name']?>"
-           <?php self::adminFormElementStoredValue($field); ?> />
-  <?php }
-  
-  private function adminFormElementStoredValue($field) {
-    $values = get_option('social_aggregator_values', '');
-    if($field['type'] == 'checkbox') {
-      $values[$field['name']];
-      error_log(var_export($values[$field['name']], TRUE));
-      print ' value="' . $field['value'] . '"';
-    }
-    else {
-      print ' value="' . $values[$field['name']] . '"';
+      self::redirect();
+      ?>
+      <div class="updated"><p><strong><?php _e('settings saved.', 'menu-test' ); ?></strong></p></div>
+      <?php
     }
   }
+
+  private function redirect() {
+    $url = 'http';
+    if ($_SERVER["HTTPS"] == "on") {
+      $url .= "s";
+    }
+    $url .= "://";
+    if ($_SERVER["SERVER_PORT"] != "80") {
+      $url .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"];
+    }
+    else {
+      $url .= $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"];
+    }
+    print '
+      <script type="text/javascript">
+        <!--
+        window.location = "' . $url . '"
+        //-->
+      </script>';
+  }
+
+  private function adminFormElement($field, $plugin = NULL) { ?>
+    <p class="<?php print $field['name'] . '_wrapper'; ?>" id="<?php print $plugin . '_' . $field['name'] . '_wrapper'; ?>">
+      <label for="<?php print $field['name']; ?>"><?php print $field['title'] ? $field['title'] : ucfirst($field['name']); ?></label>
+      <?php
+      $type = self::adminFormElementType($field);
+      $name = self::adminFormFormatName($field, $plugin);
+      $stored_values = self::adminFormElementStoredValue($field, $plugin); ?>
+      <input <?php print $type . $name . $stored_values; ?> />
+    </p>
+  <?php }
+
+  private function adminFormElementType($field) {
+    return 'type="' . $field['type'] .'"';
+  }
+
+  private function adminFormFormatName($field, $plugin) {
+    $name = $field['name'];
+    if($plugin != NULL) {
+      $name = $plugin . ':' . $name;
+    }
+    if($field['type'] == 'checkbox') {
+      $name .= '[' . $field['value'] . ']';
+    }
+    return 'name="'. $name . '" class="'. $field['name'] . '" id="' . $plugin . '_' . $field['name'] . '"';
+  }
+
+  private function adminFormElementStoredValue($field, $plugin) {
+    $values = get_option('social_aggregator_' . $plugin . '_values', '');
+    if($plugin == NULL) {
+      $values = get_option('social_aggregator_values', '');
+    }
+    $value = $values[$field['name']];
+    if($plugin != NULL && isset($values[$plugin])) {
+      $value = $values[$plugin][$field['name']];
+    }
+
+    if($field['type'] == 'checkbox') {
+      $stored_values = ' value="' . $field['value'] . '"';
+      if($value == $field['value'] || (is_array($value) && in_array($field['value'], $value))) {
+        $stored_values .= ' checked';
+      }
+    }
+    else {
+      $stored_values = ' value="' . $value . '"';
+    }
+    return $stored_values;
+  }
+  
+  private function getPluginFromName($name) {
+    foreach($this->pluginInstances as $plugin) {
+      if($plugin->getMachineName() == $name || $plugin->getPluginName() == $name) {
+        return $plugin;
+      }
+    }
+    return FALSE;
+  }
+  
+  private function getActivePlugins() {
+    $active = array();
+    foreach($this->pluginInstances as $plugin) {
+      if($plugin->isActive()) {
+        $active_plugin = array(
+          'name' => $plugin->getPluginName(),
+          'class' => $plugin->getClassName(),
+        );
+        $active[$plugin->getMachineName()] = $active_plugin;
+      }
+    }
+    return $active;
+  }
+
 } // End of class
 
 /**

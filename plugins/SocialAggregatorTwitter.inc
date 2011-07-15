@@ -1,21 +1,17 @@
 <?php
 class SocialAggregatorTwitter implements SocialAggregatorPluginInterface {
 
+  public $pluginName = 'Twitter';
   /**
    * User details
    */
   public function config() {
-    $config = array(
-      'plugin name' => 'Twitter',
-      'user config' => array(
-        'screen name' => array(
-          'nice name' => 'username',
-          'required' => TRUE,
-          'type' => 'text',
-        ),
-      )
+    $fields[] = array(
+      'title' => 'Username',
+      'name' => 'screen_name',
+      'type' => 'text',
     );
-    return $config;
+    return $fields;
   }
 
   /**

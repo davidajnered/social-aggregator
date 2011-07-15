@@ -11,7 +11,7 @@ require_once('SocialAggregatorPlugin.interface');
 class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
 
   private $instance;
-  private $options;
+  private $values;
 
   /**
    * Constructor
@@ -20,6 +20,8 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
    */
   public function init($plugin) {
     $this->instance = new $plugin;
+    // Store values in plugin
+    $this->values = get_option('social_aggregator_' . self::getMachineName() . '_values', FALSE);
     return $this->instance;
   }
 
@@ -28,6 +30,7 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
    */
   public function data($params = NULL) {
     $params = func_get_args();
+    unset($params[0]['plugin-active']);
     return $this->instance->data($params[0]);
   }
 
@@ -36,24 +39,14 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
    * @return array defining configuration needed for the plugin
    */
   public function config() {
-    return $this->instance->config();
-    // return self::processConfig($this->options);
-  }
-
-  /**
-   * Fill config array with some default fields and values
-   * @param $config
-   * @return array defining configuration needed for the plugin
-   */
-  public function processConfig($config) {
-    // Add machine name for the plugin and all the fields
-    $config['machine name'] = self::getMachineName();
-    foreach($config['user config'] as $name => $field) {
-      $config['user config'][$name]['machine name'] = self::getMachineName($name);
-    }
-
-    $configuration[$config['plugin name']] = $config;
-    return $configuration;
+    $config = $this->instance->config();
+    $config[] = array(
+      'title'   => 'Active',
+      'name'    => 'plugin-active',
+      'value'   => 'active',
+      'type'    => 'checkbox',
+    );
+    return $config;
   }
 
   /**
@@ -62,8 +55,8 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
   * @param $data the data
   */
   public function render($data) {
-    $func = strtolower($this->options['plugin name']) . '_render';
-    if($func != NULL && function_exists($func)) {
+    $func = strtolower(self::getMachineName()) . '_render';
+    if(function_exists($func)) {
       call_user_func($func, $data);
     }
     else {
@@ -83,17 +76,6 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
   }
 
   /**
-   * Get a name as machine name with no spaces and uppercase characters
-   * @param @name the name to be converted
-   */
-  public function getMachineName($name = NULL) {
-    if($name != NULL) {
-       return strtolower(str_replace(' ', '_', $name));
-    }
-    return strtolower(str_replace(' ', '_', $this->options['plugin name']));
-  }
-
-  /**
    * Get the class name of the plugin object
    * @return class name
    */
@@ -106,5 +88,38 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
    */
   public function getPluginName() {
     return $this->instance->pluginName;
+  }
+
+  /**
+   * Get a name as machine name with no spaces and uppercase characters
+   * @param @name the name to be converted
+   */
+  public function getMachineName($name = NULL) {
+    if($name != NULL) {
+      return strtolower(str_replace(' ', '_', $name));
+    }
+    return strtolower(str_replace(' ', '_', $this->instance->pluginName));
+  }
+
+  public function getValues() {
+    return $this->values;
+  }
+
+  public function getValue($name = NULL) {
+    if($name != NULL && isset($this->values[$name])) {
+      return $this->values[$name];
+    }
+    return FALSE;
+  }
+
+  public function storeValues($values) {
+    update_option('social_aggregator_' . self::getMachineName() . '_values', $values);
+  }
+
+  public function isActive() {
+    if(isset($this->values['plugin-active'])) {
+      return TRUE;
+    }
+    return FALSE;
   }
 }
