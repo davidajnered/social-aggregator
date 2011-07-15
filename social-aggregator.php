@@ -54,36 +54,7 @@ function social_aggregator_settings_page() {
   if (!current_user_can('manage_options')) {
     wp_die( __('You do not have sufficient permissions to access this page.') );
   }
-
-  // variables for the field and option names 
-  $hidden_submit_field = 'sa_submit_hidden';
-
-  // Show availabe networks. Store an array with networks in options.
-  // Network is available if there is a plugin for it
-  // Store array with settings for the network
-
-  $plugins = get_option('social_aggregator_plugins');
-  // Is form submitted?
-  if( isset($_POST[ $hidden_submit_field ]) && $_POST[ $hidden_submit_field ] == 'Y' ) {
-    $ignore = array('sa_submit_hidden', 'Submit');
-    foreach($_POST as $field => $value) {
-      if(!in_array($field, $ignore)) {
-        // Explode name to get [0] = plugin machine name, [1] = field name
-        // We only use this for plugin fields where we have to know what plugin
-        // can we use social_aggregator_get_field_value here instead?
-        $parts = explode(':', $field);
-        if(isset($parts[1])) {
-          $stored_values[$parts[0]][$parts[1]] = $value;
-        }
-        else {
-          $stored_values[$field] = $value;
-        }
-      }
-    }
-    update_option('social_aggregator_stored_values', $stored_values); ?>
-    <div class="updated"><p><strong><?php _e('settings saved.', 'menu-test' ); ?></strong></p></div>
-    <?php
-  }
+  $social_aggregator->adminFormSubmit();
 ?>
 
 <div class="wrap">
@@ -97,19 +68,18 @@ function social_aggregator_settings_page() {
 }
 
 function social_aggregator_get_formated_field($plugin, $name, $field) {
-  $stored_values = get_option('social_aggregator_stored_values');
+  $stored_values = get_option('social_aggregator_values');
   $field_name = $plugin['machine name'] . ':' . $field['machine name'];
   $field_stored_value = $stored_values[$plugin['machine name']][$field['machine name']]; ?>
   <p>
     <label for="<?php print $field_name; ?>"><?php print $name; ?></label>
-    <!--<input type="<?php print $field['type']; ?>" name="<?php print $field_name; ?>" value="<?php print isset($field_stored_value) ? $field_stored_value : ''; ?>" />-->
     <input type="<?php print $field['type']; ?>" name="<?php print $field_name; ?>" value="<?php print social_aggregator_get_stored_value($field_name); ?>" />
   </p>
 <?php
 }
 
 function social_aggregator_get_stored_value($field) {
-  $values = get_option('social_aggregator_stored_values');
+  $values = get_option('social_aggregator_values');
   $parts = explode(':', $field);
   if(isset($parts[1])) {
     return $values[$parts[0]][$parts[1]];

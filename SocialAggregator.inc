@@ -152,14 +152,72 @@ class SocialAggregator {
 
   public function adminForm() {
     foreach($this->pluginInstances as $plugin) {
-      $config = $plugin->config();
+      $fields = $plugin->config();
       print '<h3>' . $plugin->getPluginName() . '</h3>';
-      foreach($config as $field) : ?>
+      foreach($fields as $key => $field) : ?>
         <p>
-          <label for="<?php print $field['name']; ?>"><?php print $field['title'] ? $field['title'] : ucfirst($field['name']); ?></label>
-          <input type="<?php print $field['type']; ?>" name="<?php print $field['name']?>" />
+        <?php
+          if(!is_int($key)) {
+            $deep_fields = $field;
+            foreach($deep_fields as $field) {
+              self::adminFormElement($field);
+            }
+          }
+          else {
+            self::adminFormElement($field);
+          }
+        ?>
         </p>
-      <?php endforeach;
+      <?php endforeach; ?>
+      <input type="hidden" name="social_aggregator_submit" value="y">
+      <input class="button-primary" type="submit" name="submit" value="Save" />
+      <?php
+    }
+  }
+  public function adminFormSubmit() {
+    // $plugins = get_option('social_aggregator_plugins');
+    // Is form submitted?
+    if(isset($_POST['social_aggregator_submit']) && $_POST['social_aggregator_submit'] == 'y') {
+      $ignore = array('social_aggregator_submit', 'Submit');
+      error_log(var_export($_POST, TRUE));
+      foreach($_POST as $field => $value) {
+        if(!in_array($field, $ignore)) {
+          // Explode name to get [0] = plugin machine name, [1] = field name
+          // We only use this for plugin fields where we have to know what plugin
+          // can we use social_aggregator_get_field_value here instead?
+          $parts = explode(':', $field);
+          if(isset($parts[1])) {
+            $stored_values[$parts[0]][$parts[1]] = $value;
+          }
+          else {
+            $stored_values[$field] = $value;
+          }
+        }
+      }
+    }
+    //error_log(var_export($stored_values, TRUE));
+    update_option('social_aggregator_values', $stored_values); ?>
+    <div class="updated"><p><strong><?php _e('settings saved.', 'menu-test' ); ?></strong></p></div>
+  <?php }
+  
+  private function adminFormElement($field) { ?>
+    <label for="<?php print $field['name']; ?>">
+      <?php print $field['title'] ? $field['title'] : ucfirst($field['name']); ?>
+    </label>
+    <input type="<?php print $field['type']; ?>"
+           name="<?php print $field['name']?>"
+           <?php self::adminFormElementStoredValue($field); ?> />
+  <?php }
+  
+  private function adminFormElementStoredValue($field) {
+    $values = get_option('social_aggregator_values', '');
+    if($field['type'] == 'checkbox') {
+      $values[$field['name']];
+      error_log(var_export($values[$field['name']], TRUE));
+      print ' value="' . $field['value'] . '"';
+    }
+    else {
+      print ' value="' . $values[$field['name']] . '"';
     }
   }
 } // End of class
