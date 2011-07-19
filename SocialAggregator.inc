@@ -95,10 +95,12 @@ class SocialAggregator {
     foreach(self::getActivePlugins() as $plugin) {
       if($loop == 0) {
          $where = ' WHERE';
-      } else {
-        $where .= ' AND';
+      }
+      else {
+        $where .= ' OR';
       }
       $where .= " plugin = '" . $plugin['class'] . "'";
+      $loop++;
     }
     $query = "SELECT * FROM " . $table . $where . " ORDER BY date DESC LIMIT 0,30";
     if ($wpdb->query($query) === FALSE) {
@@ -197,25 +199,29 @@ class SocialAggregator {
     if(isset($_POST['social_aggregator_submit']) && $_POST['social_aggregator_submit'] == 'y') {
       update_option('social_aggregator_submitted', TRUE);
       $ignore = array('social_aggregator_submit', 'Submit');
+      $plugin_values = array();
+      $global_values = array();
       foreach($_POST as $field => $value) {
         if(!in_array($field, $ignore)) {
           $parts = explode(':', $field);
           // Plugin settings
           if(isset($parts[1])) {
-            $plugin = $parts[0];
-            $values[$parts[1]] = $value;
-            $plugin = self::getPluginFromName($plugin);
-            if(is_object($plugin)) {
-              $plugin->storeValues($values);
-            }
+            $plugin_values[$parts[0]][$parts[1]] = $value;
           }
           // Global settings
           else {
-            $values[$field] = $value;
-            update_option('social_aggregator_values', $values);
+            $global_values[$field] = $value;
           }
         }
       }
+      // Store new values
+      foreach($plugin_values as $plugin_name => $values) {
+        $plugin = self::getPluginFromName($plugin_name);
+        if(is_object($plugin)) {
+          $plugin->storeValues($values);
+        }
+      }
+      update_option('social_aggregator_values', $global_values);
       self::redirect();
       ?>
       <div class="updated"><p><strong><?php _e('settings saved.', 'menu-test' ); ?></strong></p></div>
