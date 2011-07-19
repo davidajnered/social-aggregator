@@ -36,7 +36,7 @@ class SocialAggregator {
   public function fetchData() {
     // Add a variable that decide how often we collect new data. We don't need to do it on every request
     foreach($this->pluginInstances as $plugin) {
-      if($plugin->isActive()) {
+      if(self::isPluginActive($plugin)) {
         $values = get_option('social_aggregator_' . $plugin->getMachineName() . '_values', array());
         $data = $plugin->data($values);
         if(is_array($data)) {
@@ -45,6 +45,8 @@ class SocialAggregator {
             self::dbWrite($plugin, $post);
           }
         }
+      } else {
+        self::dbDelete($plugin);
       }
     }
   }
@@ -70,6 +72,14 @@ class SocialAggregator {
       return $wpdb->get_results($query);
     }
   }
+  
+  public function dbDelete($plugin) {
+    global $wpdb;
+    $table = $wpdb->prefix . "social_aggregator";
+    $plugin_name = $plugin->getClassName();
+    $query = "DELETE FROM " . $table . " WHERE plugin = '$plugin_name';";
+    $wpdb->query($query);
+  }
 
   /**
    * Get data from database and render to view
@@ -80,11 +90,9 @@ class SocialAggregator {
     // Only select posts from active plugins
     global $wpdb;
     $table = $wpdb->prefix . "social_aggregator";
-    
-    $active_plugins = self::getActivePlugins();
-    error_log(var_export($active_plugins, TRUE));
+
     $loop = 0;
-    foreach($active_plugins as $plugin) {
+    foreach(self::getActivePlugins() as $plugin) {
       if($loop == 0) {
          $where = ' WHERE';
       } else {
@@ -93,15 +101,13 @@ class SocialAggregator {
       $where .= " plugin = '" . $plugin['class'] . "'";
     }
     $query = "SELECT * FROM " . $table . $where . " ORDER BY date DESC LIMIT 0,30";
-    error_log(var_export($query, TRUE));
     if ($wpdb->query($query) === FALSE) {
       return FALSE;
     }
     else {
       $results = $wpdb->get_results($query);
       foreach($results as $result) {
-        $content = $result->content;
-        $content = unserialize($content);
+        $content = unserialize($result->content); 
         // load the correct plugin instance and call render with $content
         $pluginInstance = $this->pluginInstances[$result->plugin];
         if(is_object($pluginInstance)) {
@@ -304,8 +310,19 @@ class SocialAggregator {
         );
         $active[$plugin->getMachineName()] = $active_plugin;
       }
+      else {
+        unset($active[$plugin->getMachineName()]);
+      }
     }
     return $active;
+  }
+  
+  private function isPluginActive($plugin) {
+    $active_plugins = self::getActivePlugins();
+    if(isset($active_plugins[$plugin->getMachineName()])) {
+      return TRUE;
+    }
+    return FALSE;
   }
 
 } // End of class

@@ -33,13 +33,15 @@ class SocialAggregatorVimeo implements SocialAggregatorPluginInterface {
    * Get the data from service api
    * most be returns in an structured array
    */
-  public function data($params) {
+  public function data($username, $resources) {
+    error_log(var_export($username, TRUE));
+    error_log(var_export($resources, TRUE));
     $ch = curl_init('http://vimeo.com/api/v2/davidajnered/likes.php');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POST, 0);
-    $result = curl_exec($ch);
+    $result = unserialize(curl_exec($ch));
     curl_close($ch);
-    return unserialize($result);
+    return $result;
   }
 
   /**

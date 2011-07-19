@@ -31,7 +31,9 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
   public function data($params = NULL) {
     $params = func_get_args();
     unset($params[0]['plugin-active']);
-    return $this->instance->data($params[0]);
+    error_log(var_export($params[0], TRUE));
+    $data = call_user_func_array(array($this->instance, 'data'), $params[0]);
+    return $data;
   }
 
   /**
