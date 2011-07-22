@@ -1,9 +1,12 @@
 <?php
+/**
+ * ToDo: Remove javascript redirect to avoid admin form resubmission
+ */
 class SocialAggregator {
 
   // Variables
   private $pluginClasses;
-  private $pluginInstances;
+  private $pluginObjects;
 
   /**
    * Singleton construct method
@@ -21,12 +24,12 @@ class SocialAggregator {
    */
   public function initPlugins() {
     foreach($this->pluginClasses as $plugin) {
-      // Create and instance all the present plugins
-      $instance = new SocialAggregatorPlugin();
-      $instance->init($plugin);
-      $this->pluginInstances[$instance->getClassName()] = $instance;
+      // Create and instanciate all the present plugins
+      $object = new $plugin();
+      $object->_init();
+      $this->pluginObjects[$object->getClassName()] = $object;
     }
-    // We check if settings form is submitted early on so we don't have to load data twice due to the redirect
+    // Since the form redirects We check if settings form is submitted early on so we don't have to load data twice due to the redirect
     self::adminFormSubmit();
   }
 
@@ -35,10 +38,10 @@ class SocialAggregator {
    */
   public function fetchData() {
     // Add a variable that decide how often we collect new data. We don't need to do it on every request
-    foreach($this->pluginInstances as $plugin) {
+    foreach($this->pluginObjects as $plugin) {
       if(self::isPluginActive($plugin)) {
         $values = get_option('social_aggregator_' . $plugin->getMachineName() . '_values', array());
-        $data = $plugin->data($values);
+        $data = $plugin->_data($values);
         if(is_array($data)) {
           // Loop through all the posts and write them to the database
           foreach($data as $post) {
@@ -53,7 +56,7 @@ class SocialAggregator {
 
   /**
    * Write plugin data to database
-   * @param $plugin The plugin instance
+   * @param $plugin The plugin object
    * @param $data The post data to be inserted in the database
    * @return If query returns data we return the result object, else false
    */
@@ -72,7 +75,11 @@ class SocialAggregator {
       return $wpdb->get_results($query);
     }
   }
-  
+
+  /**
+   * Delete all rows for a specific plugin
+   * @param $plugin The plugin object
+   */
   public function dbDelete($plugin) {
     global $wpdb;
     $table = $wpdb->prefix . "social_aggregator";
@@ -110,10 +117,10 @@ class SocialAggregator {
       $results = $wpdb->get_results($query);
       foreach($results as $result) {
         $content = unserialize($result->content); 
-        // load the correct plugin instance and call render with $content
-        $pluginInstance = $this->pluginInstances[$result->plugin];
-        if(is_object($pluginInstance)) {
-          $pluginInstance->render($content);
+        // load the correct plugin object and call render with $content
+        $pluginObject = $this->pluginObjects[$result->plugin];
+        if(is_object($pluginObject)) {
+          $pluginObject->render($content);
         }
       }
     }
@@ -170,9 +177,12 @@ class SocialAggregator {
     }
   }
 
+  /**
+   * Prints admin form
+   */
   public function adminForm() {
-    foreach($this->pluginInstances as $plugin) :
-      $fields = $plugin->config(); ?>
+    foreach($this->pluginObjects as $plugin) :
+      $fields = $plugin->_config(); ?>
       <div class="social_aggregator_plugin_wrapper" id="social_aggregator_<?php print $plugin->getMachineName(); ?>_wrapper">
         <h3><?php print $plugin->getPluginName(); ?></h3>
         <?php foreach($fields as $key => $field) : ?>
@@ -195,6 +205,9 @@ class SocialAggregator {
   <?php
   }
 
+  /**
+   * Validates form submittion
+   */
   public function adminFormSubmit() {
     if(isset($_POST['social_aggregator_submit']) && $_POST['social_aggregator_submit'] == 'y') {
       update_option('social_aggregator_submitted', TRUE);
@@ -298,7 +311,7 @@ class SocialAggregator {
   }
   
   private function getPluginFromName($name) {
-    foreach($this->pluginInstances as $plugin) {
+    foreach($this->pluginObjects as $plugin) {
       if($plugin->getMachineName() == $name || $plugin->getPluginName() == $name) {
         return $plugin;
       }
@@ -308,7 +321,7 @@ class SocialAggregator {
   
   private function getActivePlugins() {
     $active = array();
-    foreach($this->pluginInstances as $plugin) {
+    foreach($this->pluginObjects as $plugin) {
       if($plugin->isActive()) {
         $active_plugin = array(
           'name' => $plugin->getPluginName(),

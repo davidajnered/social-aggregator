@@ -6,42 +6,39 @@
  * to override the render method with a custom function in function.php
  */
 
-// Delete this somehow
-require_once('SocialAggregatorPlugin.interface');
-class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
+abstract class SocialAggregatorPlugin {
 
-  private $instance;
   private $values;
+
+  abstract function config();
+  abstract function data($params);
+  abstract function timestamp($data);
+  abstract function render($data);
 
   /**
    * Constructor
    * @param $plugin class name of plugin to be created
-   * @return plugin instance
    */
-  public function init($plugin) {
-    $this->instance = new $plugin;
+  public function _init() {
     // Store values in plugin
     $this->values = get_option('social_aggregator_' . self::getMachineName() . '_values', FALSE);
-    return $this->instance;
   }
 
   /**
    * Get data from the plugin
    */
-  public function data($params = NULL) {
+  public function _data($params = NULL) {
     $params = func_get_args();
     unset($params[0]['plugin-active']);
-    error_log(var_export($params[0], TRUE));
-    $data = call_user_func_array(array($this->instance, 'data'), $params[0]);
-    return $data;
+    return $this->data($params[0]);
   }
 
   /**
    * Get the configuration array from the plugin
    * @return array defining configuration needed for the plugin
    */
-  public function config() {
-    $config = $this->instance->config();
+  public function _config() {
+    $config = $this->config();
     $config[] = array(
       'title'   => 'Active',
       'name'    => 'plugin-active',
@@ -56,13 +53,13 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
   * else we use the plugins render method
   * @param $data the data
   */
-  public function render($data) {
+  public function _render($data) {
     $func = strtolower(self::getMachineName()) . '_render';
     if(function_exists($func)) {
       call_user_func($func, $data);
     }
     else {
-      $this->instance->render($data);
+      $this->render($data);
     }
   }
 
@@ -73,8 +70,8 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
   * @param $data the data
   * @param a unix timestamp formatted date
   */
-  public function timestamp($data) {
-    return $this->instance->timestamp($data);
+  public function _timestamp($data) {
+    return $this->timestamp($data);
   }
 
   /**
@@ -82,14 +79,15 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
    * @return class name
    */
   public function getClassName() {
-    return get_class($this->instance);
+    error_log(var_export(get_class($this), TRUE));
+    return get_class($this);
   }
 
   /**
    * Return plugin name
    */
   public function getPluginName() {
-    return $this->instance->pluginName;
+    return $this->pluginName;
   }
 
   /**
@@ -100,7 +98,7 @@ class SocialAggregatorPlugin implements SocialAggregatorPluginInterface {
     if($name != NULL) {
       return strtolower(str_replace(' ', '_', $name));
     }
-    return strtolower(str_replace(' ', '_', $this->instance->pluginName));
+    return strtolower(str_replace(' ', '_', $this->pluginName));
   }
 
   public function getValues() {

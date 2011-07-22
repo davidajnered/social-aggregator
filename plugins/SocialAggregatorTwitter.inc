@@ -1,5 +1,5 @@
 <?php
-class SocialAggregatorTwitter implements SocialAggregatorPluginInterface {
+class SocialAggregatorTwitter extends SocialAggregatorPlugin {
 
   public $pluginName = 'Twitter';
   /**

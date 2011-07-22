@@ -15,7 +15,6 @@ add_action('init', 'social_aggregator_init');
 function social_aggregator_init() {
   require_once('SocialAggregator.inc');
   require_once('SocialAggregatorPlugin.inc');
-  require_once('SocialAggregatorPlugin.interface');
   global $social_aggregator;
   $social_aggregator = new SocialAggregator();
 }
