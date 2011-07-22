@@ -7,8 +7,8 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
    */
   public function config() {
     $fields[] = array(
-      'title' => 'Username',
       'name' => 'screen_name',
+      'title' => 'Username',
       'type' => 'text',
     );
     return $fields;
@@ -21,9 +21,7 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
    * most be returns in an structured array
    */
   public function data($params) {
-    $base_url = 'http://api.twitter.com/1/statuses/user_timeline.json';
-    $url_params = self::buildURL($params);
-    $url = $base_url . '?' . $url_params;
+    $url = 'http://api.twitter.com/1/statuses/user_timeline.json?screen_name=' . $params['screen_name'];
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POST, 0);
@@ -43,17 +41,6 @@ class SocialAggregatorTwitter extends SocialAggregatorPlugin {
         <i><?php print $data->created_at; ?></i>
       </div>
     <?php
-  }
-
-  // Specific
-  private function buildURL($params) {
-    if(!empty($params)) {
-      $param_string = '';
-      foreach($params as $name => $value) {
-        $param_string .= $name . '=' . $value;
-      }
-      return $param_string;
-    }
   }
 
 }

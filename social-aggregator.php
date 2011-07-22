@@ -10,13 +10,16 @@
  */
 
 $social_aggregator;
+$admin_form;
 
 add_action('init', 'social_aggregator_init');
 function social_aggregator_init() {
+  global $social_aggregator, $admin_form;
   require_once('SocialAggregator.inc');
   require_once('SocialAggregatorPlugin.inc');
-  global $social_aggregator;
-  $social_aggregator = new SocialAggregator();
+  require_once('includes/SocialAggregatorAdmin.inc');
+  $admin_form = new SocialAggregatorAdmin();
+  $social_aggregator = new SocialAggregator($admin_form);
 }
 
 register_activation_hook(__FILE__,'social_aggregator_install');
@@ -50,7 +53,7 @@ function social_aggregator_settings_menu() {
 }
 
 function social_aggregator_settings_page() {
-  global $social_aggregator;
+  global $social_aggregator, $admin_form;
   if (!current_user_can('manage_options')) {
     wp_die( __('You do not have sufficient permissions to access this page.') );
   }
@@ -59,7 +62,7 @@ function social_aggregator_settings_page() {
 <div class="wrap">
   <h2>Social Aggregator Settings</h2>
   <form name="networks" method="post" action="">
-    <?php $social_aggregator->adminForm(); ?>
+    <?php $admin_form->form(); ?>
   </form>
 </div>
 

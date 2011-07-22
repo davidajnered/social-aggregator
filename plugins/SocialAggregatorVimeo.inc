@@ -12,17 +12,20 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
       'name' => 'username',
       'type' => 'text',
     );
-    $fields['resources'][] = array(
-      'title'   => 'Likes',
+    $fields[] = array(
+      'title'   => 'Resources',
       'name'    => 'resource',
-      'value'   => 'likes',
       'type'    => 'checkbox',
-    );
-    $fields['resources'][] = array(
-      'title'   => 'Videos',
-      'name'    => 'resource',
-      'value'   => 'videos',
-      'type'    => 'checkbox',
+      'value'   => array(
+        array(
+          'name' => 'likes',
+          'title' => 'Likes'
+        ),
+        array(
+          'name' => 'videos',
+          'title' => 'Videos',
+        )
+      ),
     );
     return $fields;
   }
@@ -34,12 +37,8 @@ class SocialAggregatorVimeo extends SocialAggregatorPlugin {
    * most be returns in an structured array
    */
   public function data($params) {
-    $ch = curl_init('http://vimeo.com/api/v2/' . $params['username'] . '/likes.php');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_POST, 0);
-    $result = unserialize(curl_exec($ch));
-    curl_close($ch);
-    return $result;
+    $url = 'http://vimeo.com/api/v2/' . $params['username'] . '/likes.php';
+    return unserialize($this->doCurl($url));
   }
 
   /**
