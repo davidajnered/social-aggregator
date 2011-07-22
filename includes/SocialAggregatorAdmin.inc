@@ -30,6 +30,7 @@ class SocialAggregatorAdmin {
    * Form submit
    */
   public function submit() {
+    error_log(var_export('submit', TRUE));
     if(isset($_POST['social_aggregator_submit']) && $_POST['social_aggregator_submit'] == 'y') {
       update_option('social_aggregator_submitted', TRUE);
       $ignore = array('social_aggregator_submit', 'Submit');
@@ -39,6 +40,8 @@ class SocialAggregatorAdmin {
         if(!in_array($field, $ignore)) {
           // Loop through the values.
           // Use config array to get the relevant once
+          $res = preg_grep("/^plugin_([0-9a-zA-Z])_/", array($field));
+          error_log(var_export($res, TRUE));
           $parts = explode(':', $field);
           // Plugin settings
           if(isset($parts[1])) {
@@ -63,6 +66,10 @@ class SocialAggregatorAdmin {
       <div class="updated"><p><strong><?php _e('settings saved.', 'menu-test' ); ?></strong></p></div>
       <?php
     }
+  }
+
+  private function getPluginFromField($field) {
+    
   }
 
   /**
